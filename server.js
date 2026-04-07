@@ -6,7 +6,7 @@ const authRoutes = require('./routes/auth')
 const boardRoutes = require('./routes/boards')
 const taskRoutes = require('./routes/tasks')
 
-app.use(cors({ origin: 'https://knbn-production.up.railway.app/'}))              
+app.use(cors({ origin: 'https://knbn-production.up.railway.app/', credentials: true}))              
 app.use(express.json())      
 app.use(express.static('public'))
 app.use('/auth', authRoutes)
