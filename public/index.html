@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNBN - Seu board de tarefas pessoal!</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080810;
+            --surface: #0e0e1a;
+            --surface2: #161625;
+            --border: #252538;
+            --accent: #6c63ff;
+            --accent2: #00ffaa;
+            --text: #ddddf0;
+            --muted: #4a4a6a;
+            --danger: #ff4560;
+            --warning: #ffaa00;
+            --success: #00ffaa;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── INPUTS & BUTTONS ── */
+        input, select, textarea {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            padding: 10px 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: block;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(108,99,255,0.1);
+        }
+
+        select option { background: var(--surface2); }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 16px rgba(108,99,255,0.3);
+        }
+
+        button:active { transform: scale(0.97); }
+
+        .btn-danger {
+            border-color: var(--border);
+            color: var(--muted);
+        }
+
+        .btn-danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(255,69,96,0.05);
+            box-shadow: none;
+        }
+
+        .btn-ghost {
+            border-color: var(--border);
+            color: var(--muted);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(108,99,255,0.05);
+            box-shadow: none;
+        }
+
+        .btn-sm {
+            font-size: 9px;
+            padding: 4px 10px;
+        }
+
+        .error-msg {
+            display: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--danger);
+            padding: 8px 12px;
+            border: 1px solid rgba(255,69,96,0.2);
+            border-radius: 6px;
+            background: rgba(255,69,96,0.05);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── AUTH SCREEN ── */
+        #telaAuth {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            padding: 2rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            animation: fadeUp 0.4s ease;
+        }
+
+        .auth-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .auth-logo span { color: var(--accent2); }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-tabs button {
+            flex: 1;
+            border-color: var(--border);
+            color: var(--muted);
+        }
+
+        .auth-tabs button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .auth-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        /* ── MAIN SCREEN ── */
+        #telaMain {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+        }
+
+        /* ── TOPBAR ── */
+        #topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(8,8,16,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.9rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .topbar-logo span { color: var(--accent2); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        #topbarUser {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        #topbar button {
+            border-color: var(--border);
+            color: var(--muted);
+            padding: 6px 14px;
+            font-size: 10px;
+        }
+
+        #topbar button:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(255,69,96,0.05);
+            box-shadow: none;
+        }
+
+        /* ── BOARDS SCREEN ── */
+        #telaBoards {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .board-compose {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .board-compose input { margin: 0; }
+
+        #boardsList {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .board-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: border-color 0.2s;
+            animation: fadeUp 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .board-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        .board-item:hover { border-color: #353550; }
+
+        .board-item-title {
+            font-size: 15px;
+            font-weight: 500;
+            padding-left: 0.5rem;
+        }
+
+        .board-item-actions { display: flex; gap: 0.5rem; }
+
+        /* ── KANBAN SCREEN ── */
+        #telaKanban { padding: 1.5rem; }
+
+        .kanban-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #kanbanTitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent2);
+        }
+
+        /* compose task */
+        .task-compose {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .task-compose .full-width { grid-column: 1 / -1; }
+        .task-compose input,
+        .task-compose select { margin: 0; }
+
+        /* ── KANBAN COLUMNS ── */
+        #kanbanColunas {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .kanban-col {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 300px;
+        }
+
+        .kanban-col h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #colunaTodo h3  { color: var(--muted); }
+        #colunaDoing h3 { color: var(--warning); }
+        #colunaDone h3  { color: var(--success); }
+
+        /* task cards */
+        .task-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            animation: fadeUp 0.3s ease;
+            transition: border-color 0.2s;
+        }
+
+        .task-card:hover { border-color: #353550; }
+
+        .task-card strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .task-card p {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .task-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .task-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* empty state */
+        .empty-state {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-align: center;
+            padding: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── TELA DE AUTH ── -->
+    <div id="telaAuth">
+        <div class="auth-card">
+            <div class="auth-logo">kn<span>//</span>bn</div>
+
+            <div class="auth-tabs">
+                <button onclick="switchTab('login')">Login</button>
+                <button onclick="switchTab('register')">Cadastro</button>
+            </div>
+
+            <div id="formLogin" class="auth-form">
+                <input type="email" id="loginEmail" placeholder="Email" />
+                <input type="password" id="loginPassword" placeholder="Senha" />
+                <p id="loginError" class="error-msg"></p>
+                <button onclick="login()">Entrar</button>
+            </div>
+
+            <div id="formRegister" class="auth-form" style="display:none">
+                <input type="email" id="registerEmail" placeholder="Email" />
+                <input type="password" id="registerPassword" placeholder="Senha" />
+                <p id="registerError" class="error-msg"></p>
+                <button onclick="register()">Cadastrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TELA PRINCIPAL ── -->
+    <div id="telaMain" style="display:none">
+
+        <div id="topbar">
+            <div class="topbar-logo">kn<span>//</span>bn</div>
+            <div class="topbar-right">
+                <span id="topbarUser"></span>
+                <button onclick="logout()">Sair</button>
+            </div>
+        </div>
+
+        <!-- BOARDS -->
+        <div id="telaBoards">
+            <p class="section-label">// meus boards</p>
+
+            <div class="board-compose">
+                <input type="text" id="boardTitle" placeholder="Nome do board" />
+                <button onclick="criarBoard()">Criar</button>
+            </div>
+
+            <p id="boardError" class="error-msg" style="margin-bottom:1rem;"></p>
+            <div id="boardsList"></div>
+        </div>
+
+        <!-- KANBAN -->
+        <div id="telaKanban" style="display:none">
+
+            <div class="kanban-header">
+                <button class="btn-ghost" onclick="voltarParaBoards()">← Voltar</button>
+                <h2 id="kanbanTitle"></h2>
+            </div>
+
+            <div class="task-compose">
+                <input type="text" id="taskTitle" placeholder="Título da task" class="full-width" />
+                <input type="text" id="taskContent" placeholder="Descrição" class="full-width" />
+                <select id="taskPriority">
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                </select>
+                <select id="taskStage">
+                    <option value="1">A fazer</option>
+                    <option value="2">Em progresso</option>
+                    <option value="3">Concluído</option>
+                </select>
+                <input type="date" id="taskDueDate" class="full-width" />
+                <button onclick="criarTask()" class="full-width">Adicionar Task</button>
+                <p id="taskError" class="error-msg full-width"></p>
+            </div>
+
+            <div id="kanbanColunas">
+                <div id="colunaTodo" class="kanban-col">
+                    <h3>A fazer</h3>
+                </div>
+                <div id="colunaDoing" class="kanban-col">
+                    <h3>Em progresso</h3>
+                </div>
+                <div id="colunaDone" class="kanban-col">
+                    <h3>Concluído</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
